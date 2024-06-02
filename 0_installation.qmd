@@ -1,0 +1,18 @@
+---
+title: "Installation"
+format: html
+editor: visual
+---
+
+## Installing packages
+
+-   lavaan (absolutely essential)
+
+-   semTools (useful)
+
+-   haven (translates STATA datasets into R; lab exercise datasets have already been translated into R frames for you)
+
+```{r message=F, warning=F}
+library(pacman)
+p_load(lavaan, semTools, haven)
+```
