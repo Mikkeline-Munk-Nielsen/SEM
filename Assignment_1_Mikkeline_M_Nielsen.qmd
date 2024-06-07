@@ -1,0 +1,310 @@
+---
+title: "GSERM SEM course: Assignment 1"
+author: "Mikkeline Munk Nielsen" 
+format:
+  pdf:
+    pdf-engine: latexmk
+    pdf-engine-opt: -xelatex
+editor: visual
+---
+
+```{r}
+
+library(pacman)
+p_load(lavaan, semTools, haven, tidyverse)
+
+load("Assign1.RData")
+df <- get("assign1") %>% as_tibble()
+```
+
+## Step 1
+
+Estimate a confirmatory factor analysis model with 3 latent variables (Social Conservatism, Religion and Work Ethic attitudes) and the indicators that are associated with them. Allow these 3 latent variables to covary.
+
+```{r results='hide'}
+
+model1 <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41'
+
+results1 <- sem(model1,df)
+summary(results1,fit.measures=T,standardized=T)
+```
+
+-   [Discuss how good the fit of the model is]{.underline}  (very good, good, poor?).\
+
+    ![](images/clipboard-1309762210.png){width="417"}
+
+    \
+    *With a Comparative Fit Index of .958 and a TLI of .94, I would say that the fit of the model is very good. These fit measures suggests that the assumptions that we have made in the model seems to hold, that is, our three latent variables seems to be correlated, as we have allowed.*
+
+-   [Discuss how correlated the three latent variables are]{.underline}.  (what is the value of the correlation?   Would you consider it to be weak?  Is in a direction you might expect \[you are not expected to be an expert in this field – so feel free to answer this any way you want as long as you correctly describe what the [actual]{.underline} correlation telling us about how the variables are connected or not connected with each other\].
+
+    ![](images/clipboard-1464830013.png){width="530"}
+
+    *The covariance output tells us that there is a moderate negative correlation between social conservatism and religion (std. -0.44). This suggest that more religious respondents are more conservative, which is as expected from a sociological standpoint, considering that religious moral values often times translates into a more socially conservative life style.*
+
+    *The moderate positive correlation (std. .525) between work ethic and social conservatism suggests that those that put stronger emphasis on work ethic are also more socially conservative.*
+
+    \*The weak(er) negative correlation between work ethic and religion suggest that more religious respondents tend to put more emphasis on work ethics.\
+
+    -   
+
+## Step 2
+
+Look at the modification indices for your model from Step 1. What single parameter would best improve the fit of your model if it were added? Would you recommend adding it (why or why not)? 
+
+```{r results='hide'}
+modindices(results1,sort=TRUE)
+```
+
+![](images/clipboard-287758726.png){width="649"}
+
+*The modification indices are suggesting that introducing a path between the latent variable social conservatism and the indicator q41. This would reduce the model* $\chi^2$ *value with 45.99. I would not include it however, as it is included as an indicator variable of another latent variable.*
+
+## Step 3
+
+Reformulate the model, this time treating the religiosity latent variable as exogenous and the other two latent variables as endogenous.
+
+```{r results='hide'}
+
+model2 <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+WorkEthic ~ Religion
+SocCons ~ Religion'
+
+
+results2 <- sem(model2,df)
+summary(results2,fit.measures=T,standardized=T)
+
+```
+
+[For Discussion:]{.underline}
+
+-   Does the model fit change when we conceptualize the model to involve causal relations as opposed to simply estimating a model with latent variable covariance among all of the latent variable (which are then treated as exogenous?)\
+    \
+    ![](images/clipboard-3887597652.png){width="440"}
+
+    *The results show that specifying a causal path from religion to social conservatism and work ethic does not change the fit of the model. In fact, the CFI and TLI are exactly similar. In other words, this suggest that the models are essentially equivalent in terms of explaining the relationships among the latent variables.*
+
+-   Discuss the hypothesis that religious people are more work ethic oriented and the hypothesis that they are more socially conservative.\
+    \
+    ![](images/clipboard-3338853409.png){width="568"}\
+    \
+    *According to the model, more religious people put more emphasis on work ethic and are more socially conservative. Comparing the standardized coefficients between these two parameters though, the correlation between religion and social conservatism (.44) is about twice as strong as that between religion and work ethic (.21). I believe the causal order of the model is reasonable as a religion upbringing is likely to cause a more socially conservative environment, while it seems unlikely that conservatism would necessarily bring you to become religious. Also, while religion is often times given by the family that you are born/brought into, work ethic could be influenced by specific religious moral values, as has ex. been suggested theoretically by Max Weber (although this of course been rejected empirically...).*
+
+-   Adjusting for the effects of religiosity  (some would use the phrase “controlling for” though the uses of the word “control” in a context like this is disputed), is there a correlation between work ethic attitudes and social conservatism?  (If there is, explain how it works – social conservatives more work ethic oriented or less?).
+
+    *There is still a moderate positive correlation between work ethic and social conservatism (std. 0.456, p\<0.000) when we have adjusted for religion, although slightly lower. In other words, the model show that higher levels of social conservatism is associated with stronger attitudes towards work ethic when religiosity is factored out, and so religion does not explain this association all together.*
+
+## Step 4
+
+Add age, education and income to your model as single-indicator exogenous variables. There should be paths from each of these variables to all 3 of the latent variables in your model.
+
+```{r results='hide'}
+
+model3 <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+WorkEthic ~ Religion+age+educ+income
+SocCons ~ Religion+age+educ+income
+Religion ~ age+educ+income'
+
+
+results3 <- sem(model3,df)
+summary(results3,fit.measures=T,standardized=T)
+
+```
+
+[For Discussion:]{.underline}
+
+1.  Discuss overall fit of this new model. Is it acceptable or does the model need to be improved?\
+    ![](images/clipboard-2928476236.png){width="430"}
+
+    *With a CFI on .936, a TLI on .913, and a RMSEA I believe the model is acceptable, but I would want to asses the modification indices if the fit could be improved.*
+
+2.  What are the significant (at p\<.05) predictors of religiosity?   Discuss how they work (e.g., older people are less/more religious).
+
+    \
+    ![](images/clipboard-1083072854.png){width="520"}
+
+    *The only regression coefficient significant at a five percent level on religiosity is age (p\<0.000). The un-standardized coefficient of 0.008 suggests that for each one year increase in age, the religiosity score will increase by 0.008 in the original scale, meaning that older people tend to be more religious.*
+
+3.  What single-indicator exogenous variable has the largest impact on work ethic attitudes?    How does it affect the dependent variable.
+
+    *Comparing the standardized coefficients of the* *single-indicator exogenous variable that work ethic attitude is regressed on, age with a std. coefficient of -.3 is the stronger one (twice as strong as education). The coefficient shows that older respondents put more emphasis on the importance of work ethics.* *The effect is small to moderate.*
+
+4.  What single-indicator exogenous variable has the largest impact on social conservatism?  How does it affect the dependent variable?\
+    \
+    *The* *single-indicator exogenous variable has the largest impact on social conservatism is also age (std. -.2) although education seems to be close (.18). It tells us that as you get older you also tend to be more socially conservative (although this could both be an age and a cohort "effect"). This is also the case the more educated you are - although I think that the causal mechanism is likely the other way around, i.e. rather than education making you more socially conservative, social conservatism might be more likely to cause people to seek higher education (at least in Northern Europe which is my frame of reference).*
+
+5.  For each of the variables age and education, provide the [total effect]{.underline} of that variable on a) social conservatism and b) work ethic attitudes and interpret these total effects, comparing them with the direct effects.
+
+    ```{r results='hide'}
+    # We're giving the coefficients names to calculate total 
+    # and direct effects. Next were multiplying the coefficients
+    # from the indirect and direct paths
+
+    model3b <- '
+    SocCons=~q182+q184+q185+q186+q193
+    Religion=~q171r+q172r+q164
+    WorkEthic=~q39+q40+q41
+    WorkEthic ~ rel1*Religion+age1*age+edu1*educ+inc1*income
+    SocCons ~ rel2*Religion+age2*age+edu2*educ+inc2*income
+    Religion ~ age3*age+edu3*educ+inc3*income
+    total_age_SocCon:=age2+(age3*rel2)
+    total_age_WorkEthic:=age1+(age3*rel1)
+    total_edu_SocCon:=edu2+(edu3*rel2)
+    total_edu_WorkEthic:=edu1+(edu3*rel1)'
+
+
+    results3b <- sem(model3b,df)
+    summary(results3b,fit.measures=T,standardized=T)
+    ```
+
+    [Direct effects:]{.underline}
+
+    ![](images/clipboard-2315310970.png){width="594"}
+
+    [Total effects:]{.underline}\
+    ![](images/clipboard-3279984550.png){width="601"}
+
+    *Comparing the total effects to the direct effects, we first of all see that the total effects are bigger in all cases (as they should be). Also, we can infer that the direct effects are stronger than the indirect effects going through the latent religiosity variable.*
+
+## Step 5
+
+Add the dummy variable gender to your model.  Add dummy variables representing marital status to your model as well.
+
+```{r message=F, warning=F, results='hide'}
+
+library(janitor)
+tabyl(df$gender) # not dummy coded...
+df <- df %>% mutate(
+  male=ifelse(gender==1,1,0) # building a male dummy
+)
+
+model4 <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+WorkEthic ~ Religion+age+educ+income+male+marr2+marr3+marr4+marr5
+SocCons ~ Religion+age+educ+income+male+marr2+marr3+marr4+marr5
+Religion ~ age+educ+income+male+marr2+marr3+marr4+marr5'
+
+results4 <- sem(model4,df)
+summary(results4,fit.measures=T,standardized=T)
+```
+
+\
+![](images/clipboard-3392127430.png){width="522"}
+
+![](images/clipboard-2281672852.png){width="523"}
+
+1.  Does gender have a significant impact on a) religiosity b) social conservatism  c) work ethic attitudes?   In each case, if it [does]{.underline} have an effect, describe it.\
+    *Gender does seem to have a significant effect on all of the latent variables in the models.* *Men seem to be less religious, more socially conservative, and put more emphasis on work ethics. However, looking at the standardized coefficients, the associations are fairly small (\<.2).*
+
+2.  Construct an overall test for the effect of marital status on religiosity.  Is the effect statistically significant?\
+    *As the output below shows, there seems to be an overall significant effect of marital status on religiosity, as we obtain a p-value \< 0.0000 on our block Walds test.*
+
+    ```{r}
+
+    # We need to construct at blocktest for the marrital status dummies. 
+    # I'm gonna go with the Walds test.
+
+    # 1) re-run model with labels on coefficients. 
+
+    model4b <- '
+    SocCons=~q182+q184+q185+q186+q193
+    Religion=~q171r+q172r+q164
+    WorkEthic=~q39+q40+q41
+    WorkEthic ~ Religion+age+educ+income+male+marr2+marr3+marr4+marr5
+    SocCons ~ Religion+age+educ+income+male+b1*marr2+b2*marr3+b3*marr4+b4*marr5
+    Religion ~ age+educ+income+male+b5*marr2+b6*marr3+b7*marr4+b8*marr5'
+    results4b <- sem(model4b,df)
+
+    # 2) Now we're making a vector to pass to the walds test
+    # Specifying which parameters to constrain. 
+
+    con1 <- '
+    b1==0
+    b2==0
+    b3==0
+    b4==0'
+
+    con2 <- '
+    b5==0
+    b6==0
+    b7==0
+    b8==0'
+
+    # 3) Now were passing it on to the Walds test
+    lavTestWald(results4b,constraint=con2) # con2 refers to religiousity
+
+    ```
+
+3.  Is there a significant difference between people who are living together (unmarried) and people who are separated/divorced for the religiosity variable? If possible, figure out 2 different ways to construct this test.\
+    *To answer this question, we need a test between marr2 and marr3. One way to test this is to switch the reference indicator to one of these to test up against. If we do this (below), we obtain a p-value for the marr3 coefficient on religiosity on .35, suggesting that there is not any significant differences between people who are living together (unmarried) and people who are separated/divorced.*
+
+    ```{r results='hide'}
+    model5 <- '
+    SocCons=~q182+q184+q185+q186+q193
+    Religion=~q171r+q172r+q164
+    WorkEthic=~q39+q40+q41
+    WorkEthic ~ Religion+age+educ+income+male+marr1+marr3+marr4+marr5
+    SocCons ~ Religion+age+educ+income+male+marr1+marr3+marr4+marr5
+    Religion ~ age+educ+income+male+marr1+marr3+marr4+marr5'
+
+
+    results5 <- sem(model5,df)
+    summary(results5,fit.measures=T,standardized=T)
+    ```
+
+    ![](images/clipboard-1090909256.png){width="561"}
+
+    *Alternatively, we can use a Walds test to test the coefficient of marr2 and marr3 against eachother just using the original model with marr1 as the refernce indicator. This will yield the same result:*
+
+    ```{r}
+
+    lavTestWald(results4b,constraints = "b5==b6")
+    ```
+
+4.  Construct an overall test for the direct effect of marital status on social conservatism. Is the effect statistically significant?\
+    *If we only want to direct effect from marital status to social conservatism, we want to constrain b1,b2,b3 and b4. The Walds test below show that there is no total significant direct effect of marital status on social conservatism, which is as expected given that only one dummy was significant in model 4.*
+
+    ```{r}
+    # con1 refers to SocialConservatism marital indicators = 0
+    lavTestWald(results4b,constraint=con1) 
+    ```
+
+5.  If you can (this might be challenging), construct an overall test for the [total]{.underline} effect of marital status on social conservatism.  \[It’s not a major detractor from your grade if you can’t figure out how to do this\]
+
+    *I'm thinking that if we want to test the significance of the total effect, we want to calculate the total effect and then constrain it and do a Walds test. My attempt here tells me that there is an significant total effect of marital status on social conservatism at a five percent level (p=0.0024).*
+
+    ```{r}
+
+    # 1) re-run model with total effect
+
+    model4c <- '
+    SocCons=~q182+q184+q185+q186+q193
+    Religion=~q171r+q172r+q164
+    WorkEthic=~q39+q40+q41
+    WorkEthic ~ Religion+age+educ+income+male+marr2+marr3+marr4+marr5
+    SocCons ~ rel*Religion+age+educ+income+male+b1*marr2+b2*marr3+b3*marr4+b4*marr5
+    Religion ~ age+educ+income+male+b5*marr2+b6*marr3+b7*marr4+b8*marr5
+    total_marr_SocCon:=b1+(b5*rel)+b2+(b6*rel)+b3+(b7*rel)+b4+(b8*rel)'
+    results4c <- sem(model4c,df)
+
+    # 2) Now we're making a vector to pass to the walds test
+    # Specifying which parameters to constrain. 
+
+    con3 <- '
+    total_marr_SocCon==0'
+
+    # 3) Now were passing it on to the Walds test
+    lavTestWald(results4c,constraint=con3) # con3 refers to total effect.
+
+    ```
