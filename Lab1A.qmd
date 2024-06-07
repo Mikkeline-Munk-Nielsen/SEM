@@ -1,0 +1,147 @@
+---
+title: "Lab1A"
+format: html
+editor: visual
+---
+
+## Reading library
+
+```{r message=F, warning=F}
+library(pacman)
+p_load(lavaan, semTools, haven)
+```
+
+## Setting work directory and read data
+
+```{r}
+getwd()
+Jobmob <- read_dta("Jobmob.dta")
+
+```
+
+## Model 1
+
+```{r}
+
+Model1 <- '
+perinc ~ rocc
+rocc ~ occ5yr
+occ5yr ~ firstocc
+firstocc ~ educ ' # Writing up the model
+
+results1 <- sem(Model1,data=Jobmob) # Running model
+
+summary(results1,fit.measures=TRUE,standardized=TRUE)
+modindices(results1,sort=TRUE)
+
+```
+
+### Outputs:
+
+Fit measures
+
+-   Comparative Fit Index: how well does the model "fit". We are not expecting this model to fit very well. A fit measure under 0.9 is not good.
+
+-   TLI like CFI
+
+-   Information criterias (BIC, AIC): not really used, mostly for comparing two different models.
+
+-   RMSEA the lower the better
+
+-   Report at least three measures
+
+-   modification index: how much better is the $R^2$ gonna get, if we add this parameter. They are sorted by size (sorted=T), but only add those that makes sense. Also, only add one at a time. The variables in the output (col "rhs") is the right hand side variable causing the one in the column "lhs". So make sure that the causal order makes sense.
+
+## Model 2
+
+```{r}
+Model2 <- '
+perinc ~ rocc
+rocc ~ occ5yr
+occ5yr ~ firstocc + educ
+firstocc ~ educ '
+results2 <- sem(Model2,data=Jobmob)
+summary(results2,fit.measures=T,standardized=T)
+modindices(results2,sort=T,minimum.value=10)
+fitMeasures(results2)
+```
+
+## Model 3
+
+```{r}
+
+Model3 <- '
+perinc ~ rocc
+rocc ~ occ5yr + educ
+occ5yr ~ firstocc + educ
+firstocc ~ educ '
+results3 <- sem(Model3,data=Jobmob)
+summary(results3,fit.measures=T,standardized=T)
+modindices(results3,sort=T)
+
+```
+
+## Model 4: Direct and indirect effects
+
+-   You need to give the parameters names and specify the paths that you want effects calculated for.
+-   Writing "\*" in front of the variable will give the parameter a name.
+
+```{r}
+
+Model4 <- '
+perinc ~ a*rocc
+rocc ~ b*occ5yr + c*educ
+occ5yr ~ d*firstocc + e*educ
+firstocc ~ f*educ
+indirect1 := d*f
+total1 := (d*f) + e'
+results4 <- sem(Model4,data=Jobmob)
+summary(results4,fit.measures=T,standardized=T)
+```
+
+## Model 5: add background variables as exogenous variables
+
+Estimating the diagram on page 11 (lowest) in the handout
+
+```{r}
+
+Model5 <- '
+perinc ~ rocc
+rocc ~ occ5yr + educ
+occ5yr ~ firstocc + educ
+firstocc ~ educ
+educ ~ fathocc + fathed + mothed'
+results5 <- sem(Model5,data=Jobmob)
+summary(results5,fit.measures=T,standardized=T)
+modindices(results5,sort=T,minimum.value=30)
+
+```
+
+-   There is effects for all, but small
+
+-   Are we underestimating because of collinearity? In this case, conceptualize a latent variable for what you are measuring, ex. parental SES measured by indicators, which are the background variables, that we just used. Below we call it Parstat:
+
+## Model 6
+
+```{r}
+
+Model6 <- '
+perinc ~ rocc
+rocc ~ occ5yr + educ
+occ5yr ~ firstocc + educ
+firstocc ~ educ
+educ ~ ParStat
+ParStat =~ fathocc + fathed + mothed
+'
+results6 <- sem(Model6,data=Jobmob)
+summary(results6,fit.measures=T,standardized=T)
+modindices(results6,sort=T,minimum.value=30)
+```
+
+## Take aways
+
+-   We looked at overall "model fit". A good fit is when the parameters o a good job of representing the data. A poor fit means that more variables need to be added
+
+    -   One measure of fit is chi-square, which forms the basis for statistical tests. A good fit is insignificant.
+
+    -   We need several fit measures.
