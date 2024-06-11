@@ -1,0 +1,257 @@
+---
+title: "GSERM SEM course: Assignment 2"
+author: "Mikkeline Munk Nielsen" 
+format:
+  pdf:
+    pdf-engine: latexmk
+    pdf-engine-opt: -xelatex
+editor: visual
+---
+
+```{r}
+
+library(pacman)
+p_load(lavaan, semTools, haven, tidyverse, janitor)
+
+load("Assign2.RData")
+df <- get("Assign2") %>% as_tibble()
+```
+
+## Step 1
+
+Estimatea 2-country model for the United States and Great Britain in which religiosity is exogenous independent) and 1) social conservatism and 2) work ethic attitudes are endogenous (dependent).  Impose measurement invariance across countries. Discuss, making reference to output listings, the following:
+
+```{r}
+
+# First, we must select observations from only the US and GB. Also, 
+# country should be a character var. to work with the group statement. 
+
+df1 <- df %>% filter(country %in% c("826", "840")) %>% 
+  mutate(country=as.character(country))
+
+# Now, we estimate a version of the model with no invariance constraints.
+model1a <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+WorkEthic ~ Religion
+SocCons ~ Religion'
+
+results1a <- sem(model1a, data = df1, group = "country")
+
+# And then we estimate one with equality constraints on loadings
+model1b <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+WorkEthic ~ Religion
+SocCons ~ Religion'
+
+results1b <- sem(model1b, data = df1, group = "country", 
+                group.equal = c("loadings"))
+
+# Now we compare the models using a Likelihood ratio test for 
+# H0: all loadings are equal
+lavTestLRT(results1a,results1b)
+```
+
+a\) What is the result of a significance test for measurement invariance?
+
+*The likelihood ratio test returns a p-value \< 0.000, which means that we can reject H0 that all loadings are equal to 0. This suggest that there is in fact measurement **variance** between the two countries.*
+
+b\) How appropriate is the measurement invariance constraint?
+
+*The test above suggest that it is not appropriate. However, another way to determine this is to compare the fit measures from the two models. As shown in the table below, the CFI is only reduced from 0.956 to 0.952 when measurement invariance is imposed on the model. Likewise, the TLI is only reduced with 0.001 from one model to the other, and the rmse still suggests that the fit is reasonable (more or less 0.071 in both) . Therefore, I would say that the model is appropriate even though we are unable to reject an H0 involving absolute equality, as imposing measurement invariance across countries onto the model does not worsen the fit of substantively.*
+
+```{r}
+
+fit_measures_to_print <- c("cfi", "tli", "rmsea")
+
+fit_measures_baseline <- fitMeasures(results1a, fit_measures_to_print)
+fit_measures_invariant <- fitMeasures(results1b, fit_measures_to_print)
+
+
+(fit_measures_table <- data.frame(
+  Measure = fit_measures_to_print,
+  Model1a = fit_measures_baseline[fit_measures_to_print],
+  Model1b = fit_measures_invariant[fit_measures_to_print]
+))
+
+```
+
+c\) For which parameter is the measurement invariance constraint most problematic?  How serious is this?
+
+*I don't know how to do this, maybe I need to constrain parameters individually?*
+
+```{r include=F}
+summary(results1b,fit.measures=T,standardized=T)
+
+```
+
+## Step 2
+
+Determine whether a model where construct equation coefficients are invariant or a model where construct equation coefficients are not invariant is more appropriate, and explain why you reached your conclusion. Then discuss how religiosity affects each of the 2 dependent variables.
+
+*As I have argued above, imposing measurement invariance on the factor loadings of the construct equations does not worsen the fit of the model substantively. Although we have to reject that there is absolute measurement equality, it still seems reasonable to assume that the structure of the latent variables are equal across the two countries. From a theoretical standpoint, the US and Great Britain can also be hypothesized to be quite similar in terms of attitudes to work as there are both quite liberal societies. Perhaps they are less similar in terms of social conservatism and religiosity as the US is a more heterogeneous country, but since the empirical implications of constraining the indicator variables are small, I would prefer model parsimony to measurement variance.*
+
+*In the constrained model (1b), a higher level of religiosity is associated with both more socially conservative values and stronger attitudes towards work ethic for both countries. In both cases, the association between religiosity and social conservatism is stronger than to attitudes towards work ethic (where std. effect sizes = -0.22 to -0.25). In fact, the association between religiosity and social conservationism is quite strong for both countries, although stronger in the US (std. 0.5 in UK and -0.66 in the US).*
+
+\pagebreak
+
+### Model 1: two country model with imposed measurement invariance across countries
+
+[Group 1 (GB):]{.underline}
+
+![](images/clipboard-2151334796.png)
+
+[Group 2 (US):]{.underline}
+
+![](images/clipboard-3688563926.png){width="601"}
+
+```{r include=F}
+summary(results1b,fit.measures=T,standardized=T)
+
+```
+
+## Step 3
+
+Re-estimate the model, adding income, age, education and gender as totally exogenous variables and treating religiosity as an intervening variable (mediator). Include direct paths from the four new variables to the work ethic variable and to the social conservatism variable.
+
+```{r results="hide"}
+# Gender variable is recoded to male dummy.
+df1 <- df1 %>% mutate(
+  male=ifelse(gender==1,1,0) # building a male dummy
+)
+
+model2 <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+Religion ~ age+educ+income+male
+WorkEthic ~ Religion+age+educ+income+male
+SocCons ~ Religion+age+educ+income+male'
+
+results2 <- sem(model2, data = df1, group = "country", 
+                group.equal = c("loadings"))
+summary(results2,fit.measures=T,standardized=T)
+
+```
+
+a\) Discuss whether the “controls” affect the conclusions from step 1 regarding between-country differences in the effect of religiosity on work ethic attitudes and on social conservatism.
+
+*Controlling for socio demographic covariates does not seem to change my conclusions, the associations are still stronger for social conservatism and for the US compared to UK. This suggests that the association between religion and attitudes towards work ethic and social conservatism was not confounded by the socio-demographic variables that is now added to the model.*
+
+b\) For each of the single-indicator exogenous variables (age, income, education, gender), outline how the variable affects work ethic attitudes and how it affects social conservatism.
+
+*Each of the four single-indicator exogenous variables affects both work ethic attitudes and social conservativism via a direct affect and an indirect effect going through religiosity. The total effect is the product of these to effects.*
+
+*The direct effects are displayed as the regression coefficients of the parameters from the exogenous variables to the two latent variables in question. Older respondents tend to display more emphasis on work ethic and be more socially conservative in both countries. The same counts for respondents with higher income, and more so for males than for females. Higher educated respondents, on the other hand, tend to display lower levels of those characteristics.*
+
+Her kan skrives mere, hvis jeg orker...
+
+\pagebreak
+
+##### Model 2: two country model with imposed measurement invariance on construct equations across countries and sociodemographic controls
+
+[Group 1 (GB):]{.underline}\
+![](images/clipboard-2337966621.png)
+
+[Group 2 (US):]{.underline}
+
+![](images/clipboard-833760527.png)
+
+c\) Do any of the four single-indicator variables (age, education, income, gender) have effects on any of the other variables in the model which are significantly different in Great Britain vs. the USA? If so, explain, for each variable that has a significantly different coefficient, what the difference is (small? big? Effect in one country but not another? Opposite direction?).
+
+*To test differences in effects between countries, I estimate the same model imposing equality constraint on regression parameters as well. Then I test these two models against each other to get univariate tests on each coefficient.*
+
+```{r eval=T, include=T}
+results2b <- sem(model2, data = df1, group = "country", 
+                 group.equal = c("loadings", "regressions"))
+# summary(results2b,fit.measures=T,standardized=T)
+```
+
+##### Model 2b: two country model with total imposed measurement invariance and sociodemographic controls
+
+![](images/clipboard-2922786429.png)
+
+```{r}
+# We need to ask for Score Tests to get univaraite tests for each and every 
+# quality constraint
+lavTestScore(results2b)
+```
+
+*The univariate tests for each equality constraint between the four single-indicator variables and the other variables in the model show that there are quite a few effect which differs between countries. All variables have different effects on religion, but most interesting is the fact that education is negatively correlated with religion in US and positively so in GB. Equally, income is negatively correlated with religion in GB and positively so in US. Differences in effect sizes are not dramatically different.*
+
+*For work ethic attitude, only the associations between age and gender differ between countries. In GB, age is positively associated with strong attitudes about work ethic, while it is opposite in the US. In both countries, males have stronger attitudes towards work ethics, but the association is stronger for GB (-0.29 to -0.20). For social conservativism, none of the exogenous variables differ between countries.*
+
+## Step 4
+
+Expanding from step 4 above, estimate a 3-group parallel slopes model for Germany, the USA and Great Britain where the coefficients in [all]{.underline} construct equations are constrained to equality across groups, then ascertain which construct equation coefficients, if any, differ across all three groups. Once you have identified which coefficients differ across all three groups, determine whether – just for these coefficients – there are significant differences in these coefficients  a) between Germany and the USA and b) between Germany and Great Britain. If there are, discuss [how]{.underline} they are different (small difference? Big difference? Effect in one country but not another?  Opposite direction? Etc.).
+
+##### Model 3: three country model with parallel slopes and measurement constraint on construct equations
+
+![](images/clipboard-457957181.png)
+
+```{r}
+# Gender variable is recoded to male dummy.
+df <- df %>% mutate(
+  male=ifelse(gender==1,1,0), # building a male dummy
+  country=as.character(country)
+)
+
+model3 <- '
+SocCons=~q182+q184+q185+q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+Religion ~ age+educ+income+male
+WorkEthic ~ Religion+age+educ+income+male
+SocCons ~ Religion+age+educ+income+male'
+
+results3 <- sem(model3, data = df, group = "country", 
+                group.equal = c("loadings", "regressions"))
+
+lavTestScore(results3)
+```
+
+*Looking across all three countries, only indicators q185 and q186 measuring social conservativism are significantly different across countries. To asses whether these coefficients are different between the three countries pairwise, I will re-estimate the model with partial constraints, allowing these three variables to differ and then test them against each other:*
+
+```{r}
+model3b <- '
+SocCons=~q182+q184+c(b1,b2,b3)*q185+c(b4,b5,b6)*q186+q193
+Religion=~q171r+q172r+q164
+WorkEthic=~q39+q40+q41
+Religion ~ age+educ+income+male
+WorkEthic ~ Religion+age+educ+income+male
+SocCons ~ Religion+age+educ+income+male'
+
+results3b <- sem(model3b, data = df, group = "country", 
+                group.equal = c("loadings", "regressions"),
+                group.partial = c("SocCons=~q185", "SocCons=~+q186"))
+
+```
+
+![](images/clipboard-257312024.png)
+
+![](images/clipboard-1516240557.png)
+
+![](images/clipboard-3466266123.png)
+
+*First, I test DE against US. Starting with the indicator q185 measuring attitudes towards divorce (b2==b3), the test suggests that they are not equal at a five percent level (p\<0.05). Looking at the coefficients from the output, we see that the association between divorce and social conservatism is stronger in US, although the difference is fairly small. For attitudes towards premarital sex (b5==b6), on the other hand, the association is slightly stronger for DE. Differences are however small, I would say. In both cases, stronger opinions suggest higher levels of social conservatism.*
+
+*Next, I testing DE against GB, the indicator q185 measuring attitudes towards divorce (b1==b3), the test suggests that they are not equal at a five percent level (p\<0.05). Looking at the coefficients from the output, we see that the association between divorce and social conservatism is stronger in GB, and the difference this time is larger (std. 0.79 vs 0.69). For attitudes towards premarital sex (b4==b6), on the other hand, the association is stronger for DE (std. 0.7 vs 0.85). In both cases, stronger opinions suggest higher levels of social conservatism.*
+
+```{r}
+lavTestWald(results3b,"b2==b3")
+```
+
+```{r}
+lavTestWald(results3b,"b5==b6")
+```
+
+```{r}
+lavTestWald(results3b,"b1==b3")
+```
+
+```{r}
+lavTestWald(results3b,"b4==b6")
+```
